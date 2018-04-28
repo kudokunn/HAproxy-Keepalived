@@ -3,6 +3,14 @@
 * Keepvalive được viết bằng ngôn ngữ C.
 * Khi người dùng cần truy cập vào dịch vụ, người dùng chỉ cần truy cập vào địa chỉ IP ảo dùng chung này thay vì phải truy cập vào những địa chỉ IP thật của các thiết bị kia.
 
+## Mô hình: 
+      
+ ![](/image/keepalived.jpg)
+
+* Thêm giải quyết vấn đề băng thông.
+
+ ![](/image/extra.jpg)
+      
 ## Một số đặc điểm của  Keepalived:
 * Keepalived nó chỉ đảm bảo rằng sẽ luôn có ít nhất một máy chủ chịu trách nhiệm cho IP dùng chung khi có sự cố xảy ra.
 * Cho phép nhiều hosts cùng chia sẻ một địa chỉ IP ảo với nhau . Keepalived thường được dùng để dựng các hệ thống HA (High Availability) dùng nhiều server để đảm bảo hệ thống được hoạt động liên tục.
@@ -16,89 +24,142 @@ Nếu vì một sự cố mà các server BACKUP không nhận được các gó
 ### Master:
       
       ### global_defs: cấu hình thông tin toàn cục (global) cho keepalived như gởi email thông báo tới đâu, tên của cluster đang cấu hình.
-      
-            global_defs {
-               notification_email {
-                 abcdefdg@gmail.com
-               }
-               notification_email_from xyzyzxyz@gmail.com
-               smtp_server smpt.gmail.com
-               smtp_connect_timeout 30
-               router_id 192.168.10.11  #IP or hostname serrver
-            }
-      
-      ### vrrp_script: chứa script, lệnh thực thi hoặc đường dẫn tới script kiểm tra dịch vụ (Ví dụ: nếu dịch vụ này down thì keepalived sẽ tự chuyển VIP sang 1 server khác).
 
-      vrrp_script chk_haproxy {
-            script "pidof haproxy"
-            interval 2
-            weight 2
-      }
+    
 
-      vrrp_script chk_nginx {
-            script "pidof nginx"
-            interval 2
-            weight 2 
-      }
+          global_defs {
 
-      vrrp_instance VI_WAN {
-            interface ens160
-            state MASTER
-            virtual_router_id 51
-            priority 100         	# 100 on master, 99 on backup
-            smpt_alert # theo hd them doan nay vaof
-            virtual_ipaddress {
-                 192.168.10.100
-       }
+             notification_email {
 
-           track_script {
-                 chk_nginx
-           }
-      }
-      ### vrrp_instance: thông tin chi tiết về 1 server vật lý trong nhóm dùng chung VRRP. Gồm các thông tin như interface dùng để liên lạc của server này, độ ưu tiên để, virtual IP tương ứng với interface, cách thức chứng thực, script kiểm tra dịch vụ….
+               abcdefdg@gmail.com
+
+             }
+
+             notification_email_from xyzyzxyz@gmail.com
+
+             smtp_server smpt.gmail.com
+
+             smtp_connect_timeout 30
+
+             router_id 192.168.10.11  #IP or hostname serrver
+
+          }
+
+    
+
+    ### vrrp_script: chứa script, lệnh thực thi hoặc đường dẫn tới script kiểm tra dịch vụ (Ví dụ: nếu dịch vụ này down thì keepalived sẽ tự chuyển VIP sang 1 server khác).
+
+
+
+    vrrp_script chk_haproxy {
+
+          script "pidof haproxy"
+
+          interval 2
+
+          weight 2
+
+    }
+
+
+
+    vrrp_script chk_nginx {
+
+          script "pidof nginx"
+
+          interval 2
+
+          weight 2 
+
+    }
+
+
+
+    vrrp_instance VI_WAN {
+
+          interface ens160
+
+          state MASTER
+
+          virtual_router_id 51
+
+          priority 100            # 100 on master, 99 on backup
+
+          smpt_alert # theo hd them doan nay vaof
+
+          virtual_ipaddress {
+
+               192.168.10.100
+
+     }
+
+
+
+         track_script {
+
+               chk_nginx
+
+         }
+
+    }
+
+      ### vrrp_instance: thông tin chi tiết về 1 server vật lý trong nhóm dùng chung VRRP. Gồm các thông tin như interface dùng để liên lạc của server này, độ ưu tiên để, virtual IP tương ứng với interface, cách thức chứng thực, script kiểm tra dịch vụ….
 
 ### Backup
 
-            global_defs {
-               notification_email {
-                 abcabcabc@gmail.com
-               }
-               notification_email_from xyxyxyxyxy@gmail.com
-               smtp_server smpt.gmail.com
-               smtp_connect_timeout 30
-               router_id 192.168.10.11  #IP or hostname serrver
-            }
-
-      vrrp_script chk_haproxy {
-            script "pidof haproxy"
-            interval 2
-            weight 2
-      }
-
-      vrrp_script chk_nginx {
-            script "pidof nginx"
-            interval 2
-            weight 2 
-      }
-
-      vrrp_instance VI_WAN {
-            interface ens160
-            state BACKUP
-            virtual_router_id 51
-            priority 99       	# 100 on master, 99 on backup
-            smpt_alert # theo hd them doan nay vaof
-            virtual_ipaddress {
-                 192.168.10.100
-           }
-
-           track_script {
-                 chk_nginx
+       global_defs {
+           notification_email {
+             abcabcabc@gmail.com
            }
+           notification_email_from xyxyxyxyxy@gmail.com
+           smtp_server smpt.gmail.com
+           smtp_connect_timeout 30
+           router_id 192.168.10.11  #IP or hostname serrver
+        }
+
+        vrrp_script chk_haproxy {
+              script "pidof haproxy"
+              interval 2
+              weight 2
       }
 
+        vrrp_script chk_nginx {
+              script "pidof nginx"
+              interval 2
+              weight 2 
+        }
+
+        vrrp_instance VI_WAN {
+              interface ens160
+              state BACKUP
+              virtual_router_id 51
+              priority 99       	# 100 on master, 99 on backup
+              smpt_alert # theo hd them doan nay vaof
+              virtual_ipaddress {
+                   103.53.170.205
+              }
+
+       track_script {
+             chk_nginx
+       }
+      }
+
+        vrrp_instance VI_LAN {
+            state MASTER
+            interface ens192
+            virtual_router_id 110
+            priority 99		# 101 on master, 100 on backup
+            virtual_ipaddress {
+                192.168.43.205
+            }
+            track_script {
+                   chk_haproxy
+            }
+        }
 
 
-* Enable iptables rule vrrp trên cả Master và Slave
+
+### Enable iptables rule vrrp trên cả Master và Slave
 
            iptables -I INPUT -p vrrp -j ACCEPT
            
