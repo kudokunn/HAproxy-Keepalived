@@ -6,7 +6,7 @@
 
 Mô hình: Vị trí Haproxy LB trong mô hình 
 
-![](/Keepalived-Haproxy/image/haproxy.jpg)
+![](/image/haproxy.jpg)
 
 Một thuật toán hay dùng trong HA proxy:
 
@@ -121,19 +121,19 @@ Nếu request có thêm đường dẫn /private thì sẽ forward backend web45
 
 Ở đây web 3 được lựa chọn để xử lý  các request  từ máy  này
 
-![](/Keepalived-Haproxy/image/a.png)
+![](/image/a.png)
 
 
 * Khi dùng đường dẫn /private
 
 Web 4 xử lý 2 request
-![](/Keepalived-Haproxy/image/c.png)
+![](/image/c.png)
 
 Web 5 xư lý 3 request
-![](/Keepalived-Haproxy/image/d.png)
+![](/image/d.png)
 
 ### Monitor Haproxy 
 
 File cấu hình đã cài đặt để monitor hệ thống haproxy theo địa chỉ  http://35.200.91.217:8080/stats
 
-![](/Keepalived-Haproxy/image/e.png)
+![](/image/e.png)
