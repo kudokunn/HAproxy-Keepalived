@@ -35,68 +35,69 @@ listen:  có thể định nghĩa một proxy đầy đủ với cả thành ph�
 
 Ví dụ: 
 
-    global
+        global
         log         127.0.0.1 local2     #
         chroot      /var/lib/haproxy     #
-        pidfile     /var/run/haproxy.pid 
+        pidfile     /var/run/haproxy.pid
         maxconn     4000
         user        haproxy
         group       haproxy
         daemon
-        stats socket /var/lib/haproxy/stats 
-    #########################################################################################################33333
-    defaults 
-        mode                    http
-        log                     global
-        option                  dontlognull
-        #option forwardfor except 127.0.0.0/8
-        option                  redispatch 
-        retries                 3 
-        timeout http-request    10s 
-        timeout queue           1m 
-        timeout connect         10s
-        timeout client          1m 
-        timeout server          1m 
-        timeout http-keep-alive 10s 
-        timeout check           10s 
-    ######################################################################################################################3
+        stats socket /var/lib/haproxy/stats #thu thap thong tin ve haproxy 
+            #########################################################################################################33333
+            defaults #thiet lap tham so mac dinh cho tat ca thanh phan khac
+                mode                    http
+                log                     global
+               #option                  httplog
+                option                  dontlognull
+                #option http-server-close
+                #option forwardfor except 127.0.0.0/8
+                option                  redispatch # giong health backend, neu 1BE bi loi thi request day den cai kia
+                retries                 3 # sl ket noi lai khi khi 1 connect bi tu choi or timeout
+                timeout http-request    10s # thời gian đợi cho 1 request mới 
+                timeout queue           1m #khi sl connect max thi connect tiep theo se vao hang doi(queue), tham so xac dinh time hang doi connect, qua thi loai bo va bao loi 503: Server không thể trả lời vì quá bận hoặc đang được bảo trì.
+                timeout connect         10s #thời gian đợi cho 1 kết nối thành công
+                timeout client          1m # sl time tối đa không hoạt động bên phía client, không có request nó đóng két nối
+                timeout server          1m # max inactivity time on the server side
+                timeout http-keep-alive 10s # sau khi respone đươc gửi, nó là thời gian để đợi một http request đến 
+                timeout check           10s # 
+                maxconn                 5000 # so ket noi toi da dong thoi 1 core co the xy ly
+            ######################################################################################################################3
 
-    #HAProxy Monitoring Config # monitor hệt thống haproxy và các backend sau mó 
-    listen monitoring *:8080             
+    #HAProxy Monitoring Config
+    listen monitoring *:8080             #Haproxy Monitoring port 8080
         mode http
-        #option forwardfor 
-        option httpclose  
-        stats enable                          
-        stats refresh 5s 
-        stats uri /stats  
-        stats auth abc:abc
-    #####################################################################################################################3
-    frontend http
-        bind *:80  
-        redirect scheme https if !{ ssl_fc } 
+        option forwardfor # cho phép sử dụng the X-Forwarded-For header,để người dùng chỉ nhìn thấy phản hồi từ HAproxy 
+    option httpclose  # đong kết nối http khi không sử dụng vi default co 1 so ketnoi idle keepalive connect san, do ton resource
+        stats enable                                 # enable status của haproxy
+        #stats show-legends # reporting thong tin bo sung
+        stats refresh 5s #
+        stats uri /stats  #                           #URL for HAProxy monitoring
+        #stats realm Haproxy\ Statistics #
+        stats auth abc:abc #User and Password 
+        stats admin if TRUE # cho phep su dung level admin de enable or disable servers tren web GUI
+        #####################################################################################################################3
+        frontend http_frontend
+            bind *:80  # listen trên port 80, khac nhau khi ghi ro dia chi
+            mode http
+            option httplog                      #  cho phep log format nhieu thong tin hon default
+            option dontlognull                  #  ket noi null connetc gui ve client khong ghi log cho phep ghi log null connect la connect khong co data 
+            option http-server-close            # 
+            option forwardfor                   # cho phep chen X-Forwarded-For header (IP goc)  den backend 
+            reqadd X-Forwarded-Proto:\ http     #  Them mot header vao cuoi http request: o day string la: X-Forwarded-Proto:http
+            acl url_private  path_beg -i /private/
+            use_backend web45 if url_private
+            default_backend web13
+        ########################################################################################################################
+        backend web13
+            balance roundrobin
+            server web1 10.140.0.2:80 weight 1 #check : neu check thi server nay nhu la master, request chi vao no,
+            server web3 10.146.0.3:80 weight 2 #check backup: con cai nay nhu backup, khi nao master chet thi request day vao no
 
-    ########################################################################################################################
-    frontend https
-    bind *:443 ssl crt /etc/haproxy/certs/systemtip.tk.pem crt /etc/haproxy/certs/tipsystem.tk.pem  
-    option httplog                     
-    option dontlognull                  
-    option http-server-close            
-    #option forwardfor                   
-    #reqadd X-Forwarded-Proto:\ http     
-    acl url_private  path_beg -i /private/
-    use_backend web45 if url_private
-    default_backend web13
-    ###########################################################################################################################
-    backend web13
-        balance roundrobin
-        cookie SERVERID insert indirect nocache # Haproxy gắn môt set-cookie là SERVERID="name backend" vào bản tin respone về Client. Ví dụ SERVERID=web1
-        server web1 10.140.0.2:80 check cookie web1 # Check set-cookie, nếu SERVERID=web1 thì request đẩy về web1
-        server web3 10.146.0.3:80 check cookie web2 # Check set-cookie, nếu SERVERID=web3 thì request đẩy về web3
-        
-    backend web45
-        balance roundrobin
-        server web4 10.146.0.4:80 weight 2
-        server web5 10.140.0.3:80 weight 3
+        backend web45
+            balance roundrobin
+            server web4 10.146.0.4:80 weight 1 #check #
+            server web5 10.140.0.3:80 weight 2 #check backup 
 
 Ở trên có cấu hình https với hai domain:
 
@@ -116,6 +117,31 @@ Trong file cấu hình có định nghĩa backend web13 và web 45 xử lý các
     acl url_private  path_beg -i /private/
     use_backend web45 if url_private
 Nếu request có thêm đường dẫn /private thì sẽ forward backend web45.
+
+### Cài đặt: Ép buộc kết nối http, thêm fontend_https,
+
+     frontend http
+         bind *:80  # listen trên port 80, khac nhau khi ghi ro dia chi
+         redirect scheme https if !{ ssl_fc } # ep buoc ket noi http
+         mode http
+         option httplog                     
+         option dontlognull                  
+         option http-server-close             
+         option forwardfor                   
+         reqadd X-Forwarded-Proto:\ http
+
+           frontend https
+            bind *:443 ssl crt /etc/haproxy/certs/systemtip.tk.pem crt /etc/haproxy/certs/tipsystem.tk.pem  
+            # muon bao nhieu doamin them bấy nhiêu
+            mode http
+            option httplog                      
+            option dontlognull                  
+            option http-server-close            
+            option forwardfor                   
+            reqadd X-Forwarded-Proto:\ http 
+            acl url_private  path_beg -i /private/
+            use_backend web45 if url_private
+            default_backend web13
 
 ### Kết quả: test với domain: systemtip.tk 
 
