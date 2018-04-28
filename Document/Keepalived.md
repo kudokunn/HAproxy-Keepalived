@@ -5,7 +5,7 @@
 
 ## Mô hình: 
       
- ![](/image/keepalived.jpg)
+ ![](/image/keepalive.jpg)
 
 * Thêm giải quyết vấn đề băng thông.
 
